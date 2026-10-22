@@ -37,7 +37,8 @@ jobs:
       - name: Install Android SDK components
         shell: bash
         run: |
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+           yes | sdkmanager --install "platform-tools" "platforms;android-35" 
+           "build-tools;35.0.0"
 
       - name: Build debug APK
         shell: bash
