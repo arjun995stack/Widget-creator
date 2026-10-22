@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: Check out repository
@@ -24,14 +25,23 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
 
       - name: Install Android SDK components
-        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+        shell: bash
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
-        run: gradle assembleDebug
+        shell: bash
+        run: |
+          gradle assembleDebug
 
       - name: Save APK for download
         uses: actions/upload-artifact@v4
