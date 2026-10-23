@@ -1,47 +1,40 @@
 package com.example.widgetcreator
 
 import android.app.Activity
+import android.app.admin.DevicePolicyManager
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
-import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 
 class MainActivity : Activity() {
-    private lateinit var textInput: EditText
+    private lateinit var adminComponent: ComponentName
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        adminComponent = ComponentName(this, LockAdminReceiver::class.java)
+
         val padding = (24 * resources.displayMetrics.density).toInt()
 
-        textInput = EditText(this).apply {
-            hint = "Type text for your widget"
-            setText(
-                getSharedPreferences("widget_creator", MODE_PRIVATE)
-                    .getString("widget_text", "Hello, Android!")
-            )
+        val message = TextView(this).apply {
+            text = "Enable screen-lock permission, then add the lock widget."
             textSize = 18f
         }
 
-        val saveButton = Button(this).apply {
-            text = "Save and update widgets"
-            setOnClickListener {
-                saveText()
-                TextWidgetProvider.updateAll(this@MainActivity)
-                Toast.makeText(
-                    this@MainActivity,
-                    "Widget text saved",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        val enableButton = Button(this).apply {
+            text = "Enable screen-lock permission"
+            setOnClickListener { requestAdminPermission() }
         }
 
         val addButton = Button(this).apply {
-            text = "Add widget to home screen"
+            text = "Add lock widget"
             setOnClickListener { addWidget() }
         }
 
@@ -49,33 +42,64 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(padding, padding, padding, padding)
-            addView(textInput)
-            addView(saveButton)
+            addView(message)
+            addView(enableButton)
             addView(addButton)
         })
     }
 
-    private fun saveText() {
-        getSharedPreferences("widget_creator", MODE_PRIVATE)
-            .edit()
-            .putString("widget_text", textInput.text.toString())
-            .apply()
+    private fun requestAdminPermission() {
+        val policyManager = getSystemService(DEVICE_POLICY_SERVICE)
+                as DevicePolicyManager
+
+        if (policyManager.isAdminActive(adminComponent)) {
+            Toast.makeText(this, "Permission is already enabled", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+            putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                "This permission lets the lock-screen widget lock your phone when tapped."
+            )
+        }
+        startActivity(intent)
     }
 
     private fun addWidget() {
-        saveText()
+        val policyManager = getSystemService(DEVICE_POLICY_SERVICE)
+                as DevicePolicyManager
 
-        val manager = AppWidgetManager.getInstance(this)
-        val provider = ComponentName(this, TextWidgetProvider::class.java)
-
-        if (manager.isRequestPinAppWidgetSupported) {
-            manager.requestPinAppWidget(provider, null, null)
-        } else {
+        if (!policyManager.isAdminActive(adminComponent)) {
             Toast.makeText(
                 this,
-                "Open your launcher’s widget picker and choose Widget Creator.",
+                "Enable screen-lock permission first",
                 Toast.LENGTH_LONG
             ).show()
+            requestAdminPermission()
+            return
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val widgetManager = AppWidgetManager.getInstance(this)
+            val provider = ComponentName(this, LockWidgetProvider::class.java)
+
+            if (widgetManager.isRequestPinAppWidgetSupported) {
+                widgetManager.requestPinAppWidget(provider, null, null)
+            } else {
+                showWidgetPickerInstructions()
+            }
+        } else {
+            showWidgetPickerInstructions()
+        }
+    }
+
+    private fun showWidgetPickerInstructions() {
+        Toast.makeText(
+            this,
+            "Long-press your home screen, choose Widgets, then add Lock Phone.",
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
