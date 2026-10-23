@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="admin_description">Allows the Lock Phone widget to lock the screen when tapped.</string>
+</resources>
