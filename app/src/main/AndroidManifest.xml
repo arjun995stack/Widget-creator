@@ -15,14 +15,28 @@
         </activity>
 
         <receiver
-            android:name=".TextWidgetProvider"
+            android:name=".LockAdminReceiver"
+            android:label="Widget Creator"
+            android:description="@string/admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".LockWidgetProvider"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/text_widget_info" />
+                android:resource="@xml/lock_widget_info" />
         </receiver>
 
     </application>
